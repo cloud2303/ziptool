@@ -1,0 +1,60 @@
+name: Manual Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release (e.g. 1.2.3 or v1.2.3)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+env:
+  BUILD_DIR: ${{ github.workspace }}/build
+  ARTIFACT_FILENAME: ziptool.exe
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Normalize version input
+        id: normalize
+        shell: pwsh
+        run: |
+          $v = "${{ inputs.version }}".Trim()
+          if ([string]::IsNullOrWhiteSpace($v)) { Write-Error "Version input is empty" }
+          if ($v.StartsWith('v')) { $tag = $v } else { $tag = "v$($v)" }
+          echo "TAG_NAME=$tag" >> $env:GITHUB_ENV
+          echo "VERSION_RAW=$v" >> $env:GITHUB_ENV
+
+      - name: Setup anew (or from cache) vcpkg (and does not build any package)
+        uses: lukka/run-vcpkg@v11
+
+      - name: Configure CMake
+        run: >
+          cmake -B "${{ env.BUILD_DIR }}"
+          -S "${{ github.workspace }}"
+          -DCMAKE_TOOLCHAIN_FILE="${{ env.VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake"
+          -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build "${{ env.BUILD_DIR }}" --config Release
+
+      - name: Create GitHub Release and upload asset
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.TAG_NAME }}
+          name: Release ${{ env.TAG_NAME }}
+          body: |
+            Manual release for version `${{ env.VERSION_RAW }}` triggered via workflow_dispatch.
+
+            Commit: ${{ github.sha }}
+          files: |
+            ${{ env.BUILD_DIR }}/**/${{ env.ARTIFACT_FILENAME }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
