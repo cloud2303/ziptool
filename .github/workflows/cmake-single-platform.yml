@@ -7,42 +7,34 @@ on:
     branches: [ "master" ]
 
 env:
-  BUILD_TYPE: Release
-  BUILD_DIR: build
-  ARTIFACT_NAME: my-cmake-build.zip
-  VCPKG_ROOT: ${{ github.workspace }}\vcpkg
-  VCPKG_DEFAULT_TRIPLET: x64-windows
-
+  BUILD_DIR: ${{ github.workspace }}/build
+  ARTIFACT_FILENAME: ziptool.exe
+  
 jobs:
   build:
     runs-on: windows-latest
 
     steps:
+
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Setup vcpkg
-      run: |
-        git clone https://github.com/microsoft/vcpkg.git "%VCPKG_ROOT%"
-        call "%VCPKG_ROOT%\bootstrap-vcpkg.bat"
-
-    - name: Install vcpkg dependencies from vcpkg.json
-      run: |
-        call "%VCPKG_ROOT%\vcpkg.exe" install --triplet %VCPKG_DEFAULT_TRIPLET%
-
+    - name: Setup anew (or from cache) vcpkg (and does not build any package)
+      uses: lukka/run-vcpkg@v11
+      
     - name: Configure CMake
-      run: |
-        cmake -B "%GITHUB_WORKSPACE%\%BUILD_DIR%" -DCMAKE_BUILD_TYPE=%BUILD_TYPE% -DCMAKE_TOOLCHAIN_FILE="%VCPKG_ROOT%\scripts\buildsystems\vcpkg.cmake"
+      run: >
+        cmake -B "${{ env.BUILD_DIR }}"
+        -S "${{ github.workspace }}"
+        -DCMAKE_TOOLCHAIN_FILE="${{ env.VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake"
+        -DCMAKE_BUILD_TYPE=Release
 
     - name: Build
-      run: cmake --build "%GITHUB_WORKSPACE%\%BUILD_DIR%" --config %BUILD_TYPE%
-
-    - name: Package Build Artifacts
-      run: |
-        powershell Compress-Archive -Path "%GITHUB_WORKSPACE%\%BUILD_DIR%\*" -DestinationPath "%GITHUB_WORKSPACE%\%ARTIFACT_NAME%"
+      run: cmake --build "${{ env.BUILD_DIR }}" --config Release
 
     - name: Upload Artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
-        name: cmake-build
-        path: "%GITHUB_WORKSPACE%\%ARTIFACT_NAME%"
+        name: ziptool-windows-x64
+        path: ${{ env.BUILD_DIR }}/**/${{ env.ARTIFACT_FILENAME }}
+        if-no-files-found: error
