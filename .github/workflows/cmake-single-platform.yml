@@ -31,9 +31,8 @@ jobs:
         call "%VCPKG_ROOT%\vcpkg.exe" install --triplet %VCPKG_DEFAULT_TRIPLET%
 
     - name: Configure CMake
-      run: cmake -B "%GITHUB_WORKSPACE%\%BUILD_DIR%" ^
-                -DCMAKE_BUILD_TYPE=%BUILD_TYPE% ^
-                -DCMAKE_TOOLCHAIN_FILE="%VCPKG_ROOT%\scripts\buildsystems\vcpkg.cmake"
+      run: |
+        cmake -B "%GITHUB_WORKSPACE%\%BUILD_DIR%" -DCMAKE_BUILD_TYPE=%BUILD_TYPE% -DCMAKE_TOOLCHAIN_FILE="%VCPKG_ROOT%\scripts\buildsystems\vcpkg.cmake"
 
     - name: Build
       run: cmake --build "%GITHUB_WORKSPACE%\%BUILD_DIR%" --config %BUILD_TYPE%
