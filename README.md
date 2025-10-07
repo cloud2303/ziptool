@@ -4,5 +4,5 @@
 ![演示](./img.png)
 
 ``` bash
-.\cmake-build-debug-visual-studio\gui.exe -f "output.zip" -d "./my-app/.next/standalone -i "./next/xxx"
+./ziptool.exe -f "output.zip" -d "./my-app/.next/standalone -i "./next/xxx"
 ```
