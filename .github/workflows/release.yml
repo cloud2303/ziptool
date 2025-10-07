@@ -1,0 +1,57 @@
+name: Create GitHub Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+      - 'v*.*'
+
+env:
+  BUILD_DIR: ${{ github.workspace }}/build
+  ARTIFACT_FILENAME: ziptool.exe
+
+jobs:
+  create-release:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup anew (or from cache) vcpkg
+        uses: lukka/run-vcpkg@v11
+
+      - name: Configure CMake
+        run: >
+          cmake -B "${{ env.BUILD_DIR }}"
+          -S "${{ github.workspace }}"
+          -DCMAKE_TOOLCHAIN_FILE="${{ env.VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake"
+          -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build "${{ env.BUILD_DIR }}" --config Release
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          body: |
+            這是 ${{ github.ref_name }} 版本的官方發布。
+            可執行檔已附加在下方。
+          draft: false
+          prerelease: false
+
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ${{ env.BUILD_DIR }}/**/${{ env.ARTIFACT_FILENAME }}
+          asset_name: ${{ env.ARTIFACT_FILENAME }}
+          asset_content_type: application/octet-stream
+
