@@ -1,5 +1,4 @@
 #include "zip.h"
-#include <print>
 #include <filesystem>
 #include <iostream>
 #include <indicators/progress_bar.hpp>
@@ -133,6 +132,6 @@ int main(const int argc, char *argv[]) {
     const int processed = compress(zip_path, root_path, ignore_set,
                                    [&](const int percent) { bar.set_progress(percent); });
     bar.mark_as_completed();
-    std::println("压缩完成，共处理{}个文件,输出路径为{}", processed, zip_path.string());
+    std::cout << "压缩完成，共处理" << processed << "个文件,输出路径为" << zip_path.string() << std::endl;
     return 0;
 }
