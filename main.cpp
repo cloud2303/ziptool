@@ -82,6 +82,10 @@ int compress(const fs::path &zip_path, const fs::path &root_path, const std::set
             }
             std::string entry_path = windows_style ? wrapper_folder + relative_path.generic_string() : relative_path.generic_string();
             zip_entry_open(zip, entry_path.c_str());
+#if defined(_WIN32) || defined(__WIN32__)
+            // Set Unix-like permissions when creating ZIP on Windows
+            zip_entry_set_unix_permissions(zip, 0755, 0);
+#endif
             zip_entry_fwrite(zip, filepath.string().c_str());
             zip_entry_close(zip);
             processed++;
@@ -92,6 +96,9 @@ int compress(const fs::path &zip_path, const fs::path &root_path, const std::set
         } else if (entry.is_directory()) {
             std::string entry_path = windows_style ? wrapper_folder + relative_path.generic_string() + "/" : relative_path.generic_string() + "/";
             zip_entry_open(zip, entry_path.c_str());
+#if defined(_WIN32) || defined(__WIN32__)
+            zip_entry_set_unix_permissions(zip, 0755, 1);
+#endif
             zip_entry_close(zip);
         }
     }

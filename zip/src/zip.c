@@ -1501,6 +1501,18 @@ unsigned long long zip_entry_header_offset(struct zip_t *zip) {
   return zip ? zip->entry.header_offset : 0;
 }
 
+void zip_entry_set_unix_permissions(struct zip_t *zip, unsigned int mode, int is_dir) {
+  if (!zip) {
+    return;
+  }
+  mz_uint32 perm = (mz_uint32)(mode & 0x0FFF);
+  mz_uint32 type = is_dir ? UNX_IFDIR : UNX_IFREG;
+  zip->entry.external_attr = ((type | perm) << 16);
+  if (is_dir) {
+    zip->entry.external_attr |= MZ_ZIP_DOS_DIR_ATTRIBUTE_BITFLAG;
+  }
+}
+
 int zip_entry_write(struct zip_t *zip, const void *buf, size_t bufsize) {
   mz_uint level;
   mz_zip_archive *pzip = NULL;

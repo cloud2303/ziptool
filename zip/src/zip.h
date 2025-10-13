@@ -317,6 +317,17 @@ extern ZIP_EXPORT unsigned long long zip_entry_dir_offset(struct zip_t *zip);
 extern ZIP_EXPORT unsigned long long zip_entry_header_offset(struct zip_t *zip);
 
 /**
+ * Sets the Unix permission bits for the current zip entry (to be stored
+ * in the external file attributes field). Should be called after
+ * zip_entry_open() and before zip_entry_close().
+ *
+ * @param zip zip archive handler.
+ * @param mode Unix permission bits (e.g., 0755, 0644). Only lower 12 bits are used.
+ * @param is_dir non-zero if the entry is a directory, zero if regular file.
+ */
+extern ZIP_EXPORT void zip_entry_set_unix_permissions(struct zip_t *zip, unsigned int mode, int is_dir);
+
+/**
  * Compresses an input buffer for the current zip entry.
  *
  * @param zip zip archive handler.
