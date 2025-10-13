@@ -1,1 +1,0 @@
-/usr/bin/c++ -Wl,--dependency-file=CMakeFiles/ziptool.dir/link.d CMakeFiles/ziptool.dir/main.cpp.o -o ziptool  zip/libzip.a /home/runner/work/ziptool/ziptool/vcpkg_installed/x64-linux/debug/lib/libCLI11.a
