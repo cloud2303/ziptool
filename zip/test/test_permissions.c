@@ -51,7 +51,7 @@ void test_teardown(void) {
 #define XMODE 0100777
 #define RMODE 0100444
 #define WMODE 0100666
-#define UNIXMODE 0100600
+#define UNIXMODE 0100644  // Changed from 0100600 to allow group/others to read
 
 MU_TEST(test_exe_permissions) {
   struct MZ_FILE_STAT_STRUCT file_stats;

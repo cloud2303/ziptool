@@ -1167,12 +1167,12 @@ static int _zip_entry_open(struct zip_t *zip, const char *entryname,
   memset(zip->entry.header, 0, MZ_ZIP_LOCAL_DIR_HEADER_SIZE * sizeof(mz_uint8));
   zip->entry.method = level ? MZ_DEFLATED : 0;
 
-  // UNIX or APPLE
-#if MZ_PLATFORM == 3 || MZ_PLATFORM == 19
-  // regular file with rw-r--r-- permissions
-  zip->entry.external_attr = (mz_uint32)(0100644) << 16;
-#else
+  // Set default file permissions
+#if defined(_WIN32) || defined(__WIN32__) || defined(DJGPP)
   zip->entry.external_attr = 0;
+#else
+  // UNIX or APPLE: regular file with rw-r--r-- permissions
+  zip->entry.external_attr = (mz_uint32)(0100644) << 16;
 #endif
 
   num_alignment_padding_bytes =
