@@ -1,5 +1,4 @@
 #include "zip.h"
-#include <print>
 #include <filesystem>
 #include <iostream>
 #include <indicators/progress_bar.hpp>
@@ -25,12 +24,18 @@ std::set<fs::path> make_ignore_set(const fs::path &root_path, const std::vector<
 
 template<typename Callback>
 int compress(const fs::path &zip_path, const fs::path &root_path, const std::set<fs::path> &ignore_set,
-             Callback on_progress) {
+             bool windows_style, Callback on_progress) {
     const auto zip = zip_open(zip_path.string().c_str(),ZIP_DEFAULT_COMPRESSION_LEVEL, 'w');
 
     if (zip == nullptr) {
         std::cout << "zip open error" << std::endl;
         return 0;
+    }
+
+    // Get the wrapper folder name (directory name being compressed)
+    std::string wrapper_folder;
+    if (windows_style) {
+        wrapper_folder = root_path.filename().string() + "/";
     }
 
     int total_files = 0;
@@ -75,7 +80,8 @@ int compress(const fs::path &zip_path, const fs::path &root_path, const std::set
                 std::cout << "zip file is exist" << std::endl;
                 continue;
             }
-            zip_entry_open(zip, relative_path.generic_string().c_str());
+            std::string entry_path = windows_style ? wrapper_folder + relative_path.generic_string() : relative_path.generic_string();
+            zip_entry_open(zip, entry_path.c_str());
             zip_entry_fwrite(zip, filepath.string().c_str());
             zip_entry_close(zip);
             processed++;
@@ -84,8 +90,8 @@ int compress(const fs::path &zip_path, const fs::path &root_path, const std::set
                 on_progress(percent);
             }
         } else if (entry.is_directory()) {
-            auto empty_dir = relative_path.generic_string() + "/";
-            zip_entry_open(zip, empty_dir.c_str());
+            std::string entry_path = windows_style ? wrapper_folder + relative_path.generic_string() + "/" : relative_path.generic_string() + "/";
+            zip_entry_open(zip, entry_path.c_str());
             zip_entry_close(zip);
         }
     }
@@ -112,9 +118,11 @@ int main(const int argc, char *argv[]) {
     std::string zip_name = "output.zip";
     std::string dir_arg;
     std::vector<std::string> ignores;
+    bool windows_style = false;
     app.add_option("-f,--filename", zip_name, "输出的文件名")->default_str("output.zip");
     app.add_option("-d,--dir", dir_arg, "要压缩的文件路径,当前目录下相对路径")->required();
     app.add_option("-i,--ignore", ignores, "忽略的相对路径（可多次传入或用逗号分隔）")->delimiter(',');
+    app.add_flag("-w,--windows-style", windows_style, "Windows压缩风格，套一层同名文件夹");
     try { app.parse(argc, argv); } catch (const CLI::ParseError &e) { return app.exit(e); }
 
     const fs::path root_path = fs::weakly_canonical(fs::current_path() / dir_arg);
@@ -130,9 +138,9 @@ int main(const int argc, char *argv[]) {
 
     const fs::path zip_path = fs::current_path() / zip_name;
 
-    const int processed = compress(zip_path, root_path, ignore_set,
+    const int processed = compress(zip_path, root_path, ignore_set, windows_style,
                                    [&](const int percent) { bar.set_progress(percent); });
     bar.mark_as_completed();
-    std::println("压缩完成，共处理{}个文件,输出路径为{}", processed, zip_path.string());
+    std::cout << "压缩完成，共处理" << processed << "个文件,输出路径为" << zip_path.string() << std::endl;
     return 0;
 }
