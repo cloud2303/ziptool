@@ -34,6 +34,8 @@ jobs:
 
       - name: Setup anew (or from cache) vcpkg (and does not build any package)
         uses: lukka/run-vcpkg@v11
+        env:
+          VCPKG_BINARY_SOURCES: "clear;gha,readwrite"
 
       - name: Configure CMake
         run: >
