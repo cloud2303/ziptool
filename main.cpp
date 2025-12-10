@@ -205,7 +205,6 @@ int main(const int argc, char *argv[]) {
             return -1;
         }
 
-        // scope guard 用于恢复名称
         bool restored = false;
         auto restore = [&]() {
             std::error_code rec;
