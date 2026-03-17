@@ -35,10 +35,9 @@ int compress(const fs::path &zip_path, const fs::path &root_path, const std::set
         return 0;
     }
 
-    // Get the wrapper folder name (directory name being compressed)
     std::string wrapper_folder;
     if (windows_style) {
-        wrapper_folder = root_path.filename().string() + "/";
+        wrapper_folder = zip_path.stem().string() + "/";
     }
 
     int total_files = static_cast<int>(extra_files.size());
@@ -158,7 +157,7 @@ int main(const int argc, char *argv[]) {
     zip_sub->add_option("-d,--dir", dir_arg, "要压缩的文件路径,当前目录下相对路径")->required();
     zip_sub->add_option("-i,--ignore", ignores, "忽略的相对路径（可多次传入或用逗号分隔）")->delimiter(',');
     zip_sub->add_option("-e,--extra", extra_inputs, "额外压缩的文件路径（可多次传入或用逗号分隔）")->delimiter(',');
-    zip_sub->add_flag("-w,--windows-style", windows_style, "Windows压缩风格，套一层同名文件夹");
+    zip_sub->add_flag("-w,--windows-style", windows_style, "Windows压缩风格，套一层与压缩包同名的文件夹");
 
     // 子命令：重命名文件夹，然后压缩重命名的文件夹
     auto *rename_zip = app.add_subcommand("rename-zip", "重命名文件夹后再压缩");
@@ -167,7 +166,7 @@ int main(const int argc, char *argv[]) {
     bool rz_windows_style = false;
     rename_zip->add_option("-d,--dir", rz_dir_arg, "要重命名并压缩的文件夹，相对当前目录")->required();
     rename_zip->add_option("-n,--new-name", rz_new_name, "重命名后的新文件夹名（不含路径）")->required();
-    rename_zip->add_flag("-w,--windows-style", rz_windows_style, "Windows压缩风格，套一层同名文件夹");
+    rename_zip->add_flag("-w,--windows-style", rz_windows_style, "Windows压缩风格，套一层与压缩包同名的文件夹");
 
     try { app.parse(argc, argv); } catch (const CLI::ParseError &e) { return app.exit(e); }
 
