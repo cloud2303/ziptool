@@ -7,7 +7,8 @@ on:
     branches: [ "master" ]
 
 env:
-  BUILD_DIR: ${{ github.workspace }}/build
+  CMAKE_PRESET: ci-windows-release
+  VCPKG_DEFAULT_TRIPLET: x64-windows
   ARTIFACT_FILENAME: ziptool.exe
   
 jobs:
@@ -19,22 +20,21 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
+    - name: Setup MSVC developer command prompt
+      uses: ilammy/msvc-dev-cmd@v1
+
     - name: Setup anew (or from cache) vcpkg (and does not build any package)
       uses: lukka/run-vcpkg@v11
       
     - name: Configure CMake
-      run: >
-        cmake -B "${{ env.BUILD_DIR }}"
-        -S "${{ github.workspace }}"
-        -DCMAKE_TOOLCHAIN_FILE="${{ env.VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake"
-        -DCMAKE_BUILD_TYPE=Release
+      run: cmake --preset "${{ env.CMAKE_PRESET }}"
 
     - name: Build
-      run: cmake --build "${{ env.BUILD_DIR }}" --config Release
+      run: cmake --build --preset "${{ env.CMAKE_PRESET }}"
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
         name: ziptool-windows-x64
-        path: ${{ env.BUILD_DIR }}/**/${{ env.ARTIFACT_FILENAME }}
+        path: ${{ github.workspace }}/build/ci-windows-release/**/${{ env.ARTIFACT_FILENAME }}
         if-no-files-found: error

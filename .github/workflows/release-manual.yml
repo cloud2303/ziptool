@@ -12,7 +12,8 @@ permissions:
   contents: write
 
 env:
-  BUILD_DIR: ${{ github.workspace }}/build
+  CMAKE_PRESET: ci-windows-release
+  VCPKG_DEFAULT_TRIPLET: x64-windows
   ARTIFACT_FILENAME: ziptool.exe
 jobs:
   release:
@@ -30,6 +31,10 @@ jobs:
           if ($v.StartsWith('v')) { $tag = $v } else { $tag = "v$($v)" }
           echo "TAG_NAME=$tag" >> $env:GITHUB_ENV
           echo "VERSION_RAW=$v" >> $env:GITHUB_ENV
+
+      - name: Setup MSVC developer command prompt
+        uses: ilammy/msvc-dev-cmd@v1
+
       - name: Set up vcpkg
         uses: lukka/run-vcpkg@v11
         env:
@@ -44,14 +49,10 @@ jobs:
             ${{ runner.os }}-vcpkg-binary-cache-
 
       - name: Configure CMake
-        run: >
-          cmake -B "${{ env.BUILD_DIR }}"
-          -S "${{ github.workspace }}"
-          -DCMAKE_TOOLCHAIN_FILE="${{ env.VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake"
-          -DCMAKE_BUILD_TYPE=Release
+        run: cmake --preset "${{ env.CMAKE_PRESET }}"
 
       - name: Build
-        run: cmake --build "${{ env.BUILD_DIR }}" --config Release
+        run: cmake --build --preset "${{ env.CMAKE_PRESET }}"
 
       - name: Create GitHub Release and upload asset
         uses: softprops/action-gh-release@v2
@@ -63,6 +64,6 @@ jobs:
 
             Commit: ${{ github.sha }}
           files: |
-            ${{ env.BUILD_DIR }}/**/${{ env.ARTIFACT_FILENAME }}
+            ${{ github.workspace }}/build/ci-windows-release/**/${{ env.ARTIFACT_FILENAME }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

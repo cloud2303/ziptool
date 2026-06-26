@@ -1,0 +1,4 @@
+CompileFlags:
+  CompilationDatabase: build/debug
+  Add: ["-std=c++23"] 
+  
