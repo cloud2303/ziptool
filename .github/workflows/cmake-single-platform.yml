@@ -10,6 +10,7 @@ env:
   CMAKE_PRESET: ci-windows-release
   VCPKG_DEFAULT_TRIPLET: x64-windows
   ARTIFACT_FILENAME: ziptool.exe
+  PDB_FILENAME: ziptool.pdb
 
 jobs:
   build:
@@ -20,10 +21,9 @@ jobs:
         uses: actions/checkout@v5
 
       - name: Setup MSVC developer command prompt
-        uses: ilammy/msvc-dev-cmd@v1
+        uses: TheMrMilchmann/setup-msvc-dev@v4
         with:
           arch: x64
-          vsversion: 2022
 
       - name: Show MSVC toolchain
         shell: pwsh
@@ -40,9 +40,25 @@ jobs:
       - name: Build
         run: cmake --build --preset "${{ env.CMAKE_PRESET }}"
 
+      - name: Verify and show artifact sizes
+        shell: pwsh
+        run: |
+          $root = "${{ github.workspace }}/build/ci-windows-release"
+          $files = @()
+          foreach ($name in @("${{ env.ARTIFACT_FILENAME }}", "${{ env.PDB_FILENAME }}")) {
+            $matches = @(Get-ChildItem $root -Recurse -Filter $name)
+            if ($matches.Count -eq 0) {
+              Write-Error "Expected artifact '$name' was not found under $root"
+            }
+            $files += $matches
+          }
+          $files | Select-Object FullName, Length | Format-Table -AutoSize
+
       - name: Upload Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ziptool-windows-x64
-          path: ${{ github.workspace }}/build/ci-windows-release/**/${{ env.ARTIFACT_FILENAME }}
+          path: |
+            ${{ github.workspace }}/build/ci-windows-release/**/${{ env.ARTIFACT_FILENAME }}
+            ${{ github.workspace }}/build/ci-windows-release/**/${{ env.PDB_FILENAME }}
           if-no-files-found: error

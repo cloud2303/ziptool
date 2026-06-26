@@ -3,10 +3,15 @@ name: Manual Release
 on:
   workflow_dispatch:
     inputs:
-      version:
-        description: "Version to release (e.g. 1.2.3 or v1.2.3)"
-        required: true
-        type: string
+      bump:
+        description: "Version bump"
+        required: false
+        default: patch
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
 
 permissions:
   contents: write
@@ -15,28 +20,63 @@ env:
   CMAKE_PRESET: ci-windows-release
   VCPKG_DEFAULT_TRIPLET: x64-windows
   ARTIFACT_FILENAME: ziptool.exe
+  PDB_FILENAME: ziptool.pdb
 jobs:
   release:
     runs-on: windows-2022
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
 
-      - name: Normalize version input
-        id: normalize
+      - name: Calculate next version
+        id: version
         shell: pwsh
         run: |
-          $v = "${{ inputs.version }}".Trim()
-          if ([string]::IsNullOrWhiteSpace($v)) { Write-Error "Version input is empty" }
-          if ($v.StartsWith('v')) { $tag = $v } else { $tag = "v$($v)" }
-          echo "TAG_NAME=$tag" >> $env:GITHUB_ENV
-          echo "VERSION_RAW=$v" >> $env:GITHUB_ENV
+          $bump = "${{ inputs.bump }}"
+          if ([string]::IsNullOrWhiteSpace($bump)) { $bump = "patch" }
+
+          $latest = git tag --list "v[0-9]*.[0-9]*.[0-9]*" --sort=-v:refname | Select-Object -First 1
+          if ([string]::IsNullOrWhiteSpace($latest)) { $latest = "v0.0.0" }
+          if ($latest -notmatch '^v(?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+)$') {
+            Write-Error "Latest tag '$latest' is not a valid semver tag like v1.2.3"
+          }
+
+          $major = [int]$Matches.major
+          $minor = [int]$Matches.minor
+          $patch = [int]$Matches.patch
+
+          switch ($bump) {
+            "major" {
+              $major += 1
+              $minor = 0
+              $patch = 0
+            }
+            "minor" {
+              $minor += 1
+              $patch = 0
+            }
+            "patch" {
+              $patch += 1
+            }
+            default {
+              Write-Error "Unsupported bump type '$bump'"
+            }
+          }
+
+          $tag = "v$major.$minor.$patch"
+          "TAG_NAME=$tag" >> $env:GITHUB_ENV
+          "VERSION_RAW=$($tag.TrimStart('v'))" >> $env:GITHUB_ENV
+          "LATEST_TAG=$latest" >> $env:GITHUB_ENV
+          "tag=$tag" >> $env:GITHUB_OUTPUT
+          Write-Host "Latest tag: $latest"
+          Write-Host "Next tag: $tag"
 
       - name: Setup MSVC developer command prompt
-        uses: ilammy/msvc-dev-cmd@v1
+        uses: TheMrMilchmann/setup-msvc-dev@v4
         with:
           arch: x64
-          vsversion: 2022
 
       - name: Show MSVC toolchain
         shell: pwsh
@@ -50,7 +90,7 @@ jobs:
           VCPKG_BINARY_SOURCES: default,rw
 
       - name: Set up binary cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
           key: ${{ runner.os }}-vcpkg-binary-cache-${{ hashFiles('vcpkg*.json') }}
@@ -63,16 +103,34 @@ jobs:
       - name: Build
         run: cmake --build --preset "${{ env.CMAKE_PRESET }}"
 
+      - name: Verify and show artifact sizes
+        shell: pwsh
+        run: |
+          $root = "${{ github.workspace }}/build/ci-windows-release"
+          $files = @()
+          foreach ($name in @("${{ env.ARTIFACT_FILENAME }}", "${{ env.PDB_FILENAME }}")) {
+            $matches = @(Get-ChildItem $root -Recurse -Filter $name)
+            if ($matches.Count -eq 0) {
+              Write-Error "Expected artifact '$name' was not found under $root"
+            }
+            $files += $matches
+          }
+          $files | Select-Object FullName, Length | Format-Table -AutoSize
+
       - name: Create GitHub Release and upload asset
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ env.TAG_NAME }}
+          target_commitish: ${{ github.sha }}
           name: Release ${{ env.TAG_NAME }}
           body: |
-            Manual release for version `${{ env.VERSION_RAW }}` triggered via workflow_dispatch.
+            Manual release for version `${{ env.VERSION_RAW }}`.
+
+            Previous tag: ${{ env.LATEST_TAG }}
 
             Commit: ${{ github.sha }}
           files: |
             ${{ github.workspace }}/build/ci-windows-release/**/${{ env.ARTIFACT_FILENAME }}
+            ${{ github.workspace }}/build/ci-windows-release/**/${{ env.PDB_FILENAME }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
