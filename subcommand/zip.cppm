@@ -48,7 +48,7 @@ export void zip(CLI::App &app) {
                     option::Start{"["},
                     option::Fill{"="},
                     option::Lead{">"},
-                    option::Remainder{""},
+                    option::Remainder{" "},
                     option::End{"]"},
                     option::PostfixText{"压缩中"},
                     option::ForegroundColor{Color::green},
