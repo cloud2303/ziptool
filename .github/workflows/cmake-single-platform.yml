@@ -2,39 +2,47 @@ name: CMake Build with vcpkg on Windows
 
 on:
   push:
-    branches: [ "master" ]
+    branches: ["master"]
   pull_request:
-    branches: [ "master" ]
+    branches: ["master"]
 
 env:
   CMAKE_PRESET: ci-windows-release
   VCPKG_DEFAULT_TRIPLET: x64-windows
   ARTIFACT_FILENAME: ziptool.exe
-  
+
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: windows-2022
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
 
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Setup MSVC developer command prompt
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+          vsversion: 2022
 
-    - name: Setup MSVC developer command prompt
-      uses: ilammy/msvc-dev-cmd@v1
+      - name: Show MSVC toolchain
+        shell: pwsh
+        run: |
+          where.exe cl
+          cl
 
-    - name: Setup anew (or from cache) vcpkg (and does not build any package)
-      uses: lukka/run-vcpkg@v11
-      
-    - name: Configure CMake
-      run: cmake --preset "${{ env.CMAKE_PRESET }}"
+      - name: Setup anew (or from cache) vcpkg (and does not build any package)
+        uses: lukka/run-vcpkg@v11
 
-    - name: Build
-      run: cmake --build --preset "${{ env.CMAKE_PRESET }}"
+      - name: Configure CMake
+        run: cmake --preset "${{ env.CMAKE_PRESET }}"
 
-    - name: Upload Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: ziptool-windows-x64
-        path: ${{ github.workspace }}/build/ci-windows-release/**/${{ env.ARTIFACT_FILENAME }}
-        if-no-files-found: error
+      - name: Build
+        run: cmake --build --preset "${{ env.CMAKE_PRESET }}"
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ziptool-windows-x64
+          path: ${{ github.workspace }}/build/ci-windows-release/**/${{ env.ARTIFACT_FILENAME }}
+          if-no-files-found: error

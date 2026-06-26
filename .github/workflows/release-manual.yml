@@ -17,10 +17,10 @@ env:
   ARTIFACT_FILENAME: ziptool.exe
 jobs:
   release:
-    runs-on: windows-latest
+    runs-on: windows-2022
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Normalize version input
         id: normalize
@@ -34,6 +34,15 @@ jobs:
 
       - name: Setup MSVC developer command prompt
         uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+          vsversion: 2022
+
+      - name: Show MSVC toolchain
+        shell: pwsh
+        run: |
+          where.exe cl
+          cl
 
       - name: Set up vcpkg
         uses: lukka/run-vcpkg@v11
