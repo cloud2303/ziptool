@@ -2,12 +2,15 @@
 module;
 #include <CLI/CLI.hpp>
 #include <filesystem>
+#include <indicators/progress_bar.hpp>
 #include <print>
 #include <string>
 export module Subcommand.Zip;
-import Compress;
+import Utils.Compress;
+import Utils.Utils;
 
 namespace Subcommand {
+
 export void zip(CLI::App &app) {
   auto zip_folder = app.add_subcommand("zip", "压缩文件夹");
   struct ZipFolderOptions {
@@ -39,9 +42,33 @@ export void zip(CLI::App &app) {
 
     auto source_path =
         fs::weakly_canonical(fs::current_path() / options->source_dir);
-    return Compress::compress(
-        zip_path, source_path, archive_root_name, [](int progress, int total) {
-          std::println("Progress: {}/{}", progress, total);
+
+    using namespace indicators;
+    ProgressBar bar{option::BarWidth{50},
+                    option::Start{"["},
+                    option::Fill{"="},
+                    option::Lead{">"},
+                    option::Remainder{""},
+                    option::End{"]"},
+                    option::PostfixText{"压缩中"},
+                    option::ForegroundColor{Color::green},
+                    option::ShowPercentage{true},
+                    option::FontStyles{std::vector{FontStyle::bold}}};
+
+    return Utils::compress(
+        zip_path, source_path, archive_root_name, [&](int progress, int total) {
+          if (total <= 0) {
+            return;
+          }
+          auto percent =
+              static_cast<size_t>(static_cast<double>(progress) /
+                                  static_cast<double>(total) * 100.0);
+          if (progress >= total) {
+            bar.set_option(option::PostfixText{"完成"});
+            bar.set_progress(100);
+            return;
+          }
+          bar.set_progress(percent);
         });
   });
 }

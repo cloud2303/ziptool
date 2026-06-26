@@ -3,10 +3,10 @@ module;
 #include <concepts>
 #include <filesystem>
 #include <print>
-export module Compress;
+export module Utils.Compress;
 namespace fs = std::filesystem;
 
-namespace Compress {
+namespace Utils {
 export template <typename Callback>
 concept ProgressCallback = std::invocable<Callback, int, int>;
 
@@ -78,4 +78,4 @@ int compress(const fs::path &zip_path, const fs::path &source_path,
   return 0;
 }
 
-} // namespace Compress
+} // namespace Utils
