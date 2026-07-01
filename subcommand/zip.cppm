@@ -55,6 +55,7 @@ export void zip(CLI::App &app) {
                     option::ShowPercentage{true},
                     option::FontStyles{std::vector{FontStyle::bold}}};
 
+    size_t last_percent = static_cast<size_t>(-1);
     return Utils::compress(
         zip_path, source_path, archive_root_name, [&](int progress, int total) {
           if (total <= 0) {
@@ -63,6 +64,11 @@ export void zip(CLI::App &app) {
           auto percent =
               static_cast<size_t>(static_cast<double>(progress) /
                                   static_cast<double>(total) * 100.0);
+          if (percent == last_percent) {
+              return;
+          }
+
+          last_percent = percent;
           if (progress >= total) {
             bar.set_option(option::PostfixText{"完成"});
             bar.set_progress(100);
